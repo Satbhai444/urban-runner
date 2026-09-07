@@ -1,6 +1,7 @@
 // PLAYER - MOBILE OPTIMIZED
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { getCharacter, getBoard, loadProgress } from './Characters.js';
 
 export class Player {
@@ -38,8 +39,22 @@ export class Player {
     this.collider = null;
     this.brokenPieces = [];
 
+    this.glbScene = null;
+    this.isGLBCharacter = false;
+    this.glbMesh = null;
+
     this.createMesh();
     this.createPhysics();
+  }
+
+  async loadGLBModel() {
+    const loader = new GLTFLoader();
+    try {
+      const gltf = await loader.loadAsync('./models/michael.glb');
+      this.glbScene = gltf.scene;
+    } catch (err) {
+      console.error('Failed to load GLB model:', err);
+    }
   }
 
   setCharacter(character) {
@@ -74,133 +89,145 @@ export class Player {
   createMeshWithColors(character) {
     this.group = new THREE.Group();
     const useShadows = this.quality === 'high' && !this.isMobile;
-    const c = character.colors;
+    const c = character.colors || {};
 
-    // Use Lambert (faster than Standard) on mobile
-    const Mat = this.quality === 'low'
-      ? THREE.MeshLambertMaterial
-      : THREE.MeshLambertMaterial; // Always Lambert for player (faster)
+    if (character.useGLB && this.glbScene) {
+      this.isGLBCharacter = true;
+      this.glbMesh = this.glbScene.clone();
+      
+      this.glbMesh.scale.set(1, 1, 1);
+      this.glbMesh.position.y = 1; 
+      
+      if (useShadows) {
+        this.glbMesh.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+          }
+        });
+      }
+      
+      this.group.add(this.glbMesh);
+    } else {
+      this.isGLBCharacter = false;
+      this.glbMesh = null;
+      
+      const Mat = this.quality === 'low'
+        ? THREE.MeshLambertMaterial
+        : THREE.MeshLambertMaterial;
 
-    const skinMat = new Mat({ color: c.skin });
-    const shirtMat = new Mat({ color: c.shirt });
-    const pantsMat = new Mat({ color: c.pants });
-    const shoesMat = new Mat({ color: c.shoes });
-    const hairMat = new Mat({ color: c.hair });
+      const skinMat = new Mat({ color: c.skin || 0xffe0bd });
+      const shirtMat = new Mat({ color: c.shirt || 0xff0000 });
+      const pantsMat = new Mat({ color: c.pants || 0x0000ff });
+      const hairMat = new Mat({ color: c.hair || 0x000000 });
 
-    const emissiveMat = new THREE.MeshBasicMaterial({ color: c.shirt });
-    const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const eyeBlackMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+      const emissiveMat = new THREE.MeshBasicMaterial({ color: c.shirt || 0xff0000 });
+      const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const eyeBlackMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
-    // Torso
-    this.torso = new THREE.Group();
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.7, 0.4), shirtMat);
-    if (useShadows) torso.castShadow = true;
-    this.torso.add(torso);
-    this.group.add(this.torso);
-    this.torso.position.y = 1.1;
+      this.torso = new THREE.Group();
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.7, 0.4), shirtMat);
+      if (useShadows) torso.castShadow = true;
+      this.torso.add(torso);
+      this.group.add(this.torso);
+      this.torso.position.y = 1.1;
 
-    // Head
-    this.head = new THREE.Group();
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 10), skinMat);
-    if (useShadows) head.castShadow = true;
-    this.head.add(head);
+      this.head = new THREE.Group();
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 10), skinMat);
+      if (useShadows) head.castShadow = true;
+      this.head.add(head);
 
-    // Hair (simple)
-    if (this.quality !== 'low') {
-      const hair = new THREE.Mesh(
-        new THREE.SphereGeometry(0.27, 10, 10, 0, Math.PI * 2, 0, Math.PI / 2),
-        hairMat
-      );
-      hair.position.y = 0.05;
-      this.head.add(hair);
-    }
-
-    // Eyes (simpler)
-    [-1, 1].forEach(side => {
-      const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), eyeWhiteMat);
-      eyeWhite.position.set(side * 0.08, 0.05, 0.22);
-      this.head.add(eyeWhite);
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), eyeBlackMat);
-      eye.position.set(side * 0.08, 0.05, 0.27);
-      this.head.add(eye);
-    });
-
-    // Headphones
-    if (this.quality !== 'low') {
-      const headphone = new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.04, 6, 12), emissiveMat);
-      headphone.rotation.x = Math.PI / 2;
-      this.head.add(headphone);
+      if (this.quality !== 'low') {
+        const hair = new THREE.Mesh(
+          new THREE.SphereGeometry(0.27, 10, 10, 0, Math.PI * 2, 0, Math.PI / 2),
+          hairMat
+        );
+        hair.position.y = 0.05;
+        this.head.add(hair);
+      }
 
       [-1, 1].forEach(side => {
-        const ear = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 6), emissiveMat);
-        ear.position.set(side * 0.27, 0, 0);
-        ear.rotation.z = Math.PI / 2;
-        this.head.add(ear);
+        const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), eyeWhiteMat);
+        eyeWhite.position.set(side * 0.08, 0.05, 0.22);
+        this.head.add(eyeWhite);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), eyeBlackMat);
+        eye.position.set(side * 0.08, 0.05, 0.27);
+        this.head.add(eye);
       });
+
+      if (this.quality !== 'low') {
+        const headphone = new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.04, 6, 12), emissiveMat);
+        headphone.rotation.x = Math.PI / 2;
+        this.head.add(headphone);
+
+        [-1, 1].forEach(side => {
+          const ear = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 6), emissiveMat);
+          ear.position.set(side * 0.27, 0, 0);
+          ear.rotation.z = Math.PI / 2;
+          this.head.add(ear);
+        });
+      }
+
+      this.head.position.y = 1.7;
+      this.group.add(this.head);
+
+      this.leftArm = new THREE.Group();
+      const leftUpper = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), shirtMat);
+      if (useShadows) leftUpper.castShadow = true;
+      leftUpper.position.y = -0.25;
+      this.leftArm.add(leftUpper);
+      this.leftForearm = new THREE.Group();
+      this.leftForearm.add(new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.45, 0.13), skinMat));
+      this.leftForearm.children[0].position.y = -0.22;
+      this.leftForearm.position.y = -0.5;
+      this.leftArm.add(this.leftForearm);
+      this.leftArm.position.set(-0.4, 1.4, 0);
+      this.group.add(this.leftArm);
+
+      this.rightArm = new THREE.Group();
+      const rightUpper = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), shirtMat);
+      if (useShadows) rightUpper.castShadow = true;
+      rightUpper.position.y = -0.25;
+      this.rightArm.add(rightUpper);
+      this.rightForearm = new THREE.Group();
+      this.rightForearm.add(new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.45, 0.13), skinMat));
+      this.rightForearm.children[0].position.y = -0.22;
+      this.rightForearm.position.y = -0.5;
+      this.rightArm.add(this.rightForearm);
+      this.rightArm.position.set(0.4, 1.4, 0);
+      this.group.add(this.rightArm);
+
+      this.leftLeg = new THREE.Group();
+      const lUL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), pantsMat);
+      if (useShadows) lUL.castShadow = true;
+      lUL.position.y = -0.25;
+      this.leftLeg.add(lUL);
+      this.leftLowerLeg = new THREE.Group();
+      this.leftLowerLeg.add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), pantsMat));
+      this.leftLowerLeg.children[0].position.y = -0.25;
+      this.leftLowerLeg.position.y = -0.5;
+      this.leftLeg.add(this.leftLowerLeg);
+      this.leftLeg.position.set(-0.15, 0.75, 0);
+      this.group.add(this.leftLeg);
+
+      this.rightLeg = new THREE.Group();
+      const rUL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), pantsMat);
+      if (useShadows) rUL.castShadow = true;
+      rUL.position.y = -0.25;
+      this.rightLeg.add(rUL);
+      this.rightLowerLeg = new THREE.Group();
+      this.rightLowerLeg.add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), pantsMat));
+      this.rightLowerLeg.children[0].position.y = -0.25;
+      this.rightLowerLeg.position.y = -0.5;
+      this.rightLeg.add(this.rightLowerLeg);
+      this.rightLeg.position.set(0.15, 0.75, 0);
+      this.group.add(this.rightLeg);
     }
 
-    this.head.position.y = 1.7;
-    this.group.add(this.head);
-
-    // Arms
-    this.leftArm = new THREE.Group();
-    const leftUpper = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), shirtMat);
-    if (useShadows) leftUpper.castShadow = true;
-    leftUpper.position.y = -0.25;
-    this.leftArm.add(leftUpper);
-    this.leftForearm = new THREE.Group();
-    this.leftForearm.add(new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.45, 0.13), skinMat));
-    this.leftForearm.children[0].position.y = -0.22;
-    this.leftForearm.position.y = -0.5;
-    this.leftArm.add(this.leftForearm);
-    this.leftArm.position.set(-0.4, 1.4, 0);
-    this.group.add(this.leftArm);
-
-    this.rightArm = new THREE.Group();
-    const rightUpper = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.5, 0.15), shirtMat);
-    if (useShadows) rightUpper.castShadow = true;
-    rightUpper.position.y = -0.25;
-    this.rightArm.add(rightUpper);
-    this.rightForearm = new THREE.Group();
-    this.rightForearm.add(new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.45, 0.13), skinMat));
-    this.rightForearm.children[0].position.y = -0.22;
-    this.rightForearm.position.y = -0.5;
-    this.rightArm.add(this.rightForearm);
-    this.rightArm.position.set(0.4, 1.4, 0);
-    this.group.add(this.rightArm);
-
-    // Legs
-    this.leftLeg = new THREE.Group();
-    const lUL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), pantsMat);
-    if (useShadows) lUL.castShadow = true;
-    lUL.position.y = -0.25;
-    this.leftLeg.add(lUL);
-    this.leftLowerLeg = new THREE.Group();
-    this.leftLowerLeg.add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), pantsMat));
-    this.leftLowerLeg.children[0].position.y = -0.25;
-    this.leftLowerLeg.position.y = -0.5;
-    this.leftLeg.add(this.leftLowerLeg);
-    this.leftLeg.position.set(-0.15, 0.75, 0);
-    this.group.add(this.leftLeg);
-
-    this.rightLeg = new THREE.Group();
-    const rUL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), pantsMat);
-    if (useShadows) rUL.castShadow = true;
-    rUL.position.y = -0.25;
-    this.rightLeg.add(rUL);
-    this.rightLowerLeg = new THREE.Group();
-    this.rightLowerLeg.add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.16), pantsMat));
-    this.rightLowerLeg.children[0].position.y = -0.25;
-    this.rightLowerLeg.position.y = -0.5;
-    this.rightLeg.add(this.rightLowerLeg);
-    this.rightLeg.position.set(0.15, 0.75, 0);
-    this.group.add(this.rightLeg);
-
-    // Trail - fewer on mobile
     this.trail = [];
     const trailCount = this.quality === 'low' ? 4 : 6;
     for (let i = 0; i < trailCount; i++) {
-      const trailMat = new THREE.MeshBasicMaterial({ color: c.shirt, transparent: true, opacity: 0.3 });
+      const trailColor = (c && c.shirt) !== undefined ? c.shirt : 0xffffff;
+      const trailMat = new THREE.MeshBasicMaterial({ color: trailColor, transparent: true, opacity: 0.3 });
       const trail = new THREE.Mesh(new THREE.SphereGeometry(0.1, 4, 4), trailMat);
       trail.visible = false;
       this.app.scene.add(trail);
@@ -266,7 +293,6 @@ export class Player {
     const deck = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 0.9), deckMat);
     group.add(deck);
 
-    // Wheels
     const wheelGeom = new THREE.CylinderGeometry(0.05, 0.05, 0.05, 6);
     [-0.35, 0.35].forEach(z => {
       [-0.22, 0.22].forEach(x => {
@@ -277,7 +303,6 @@ export class Player {
       });
     });
 
-    // Glow
     const glow = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.02, 0.95), glowMat);
     glow.position.y = -0.05;
     group.add(glow);
@@ -307,7 +332,6 @@ export class Player {
     const board = getBoard(progress.selectedBoard);
     const deckMat = new THREE.MeshLambertMaterial({ color: board.deckColor });
 
-    // Only 2 pieces for mobile
     const pieceCount = this.quality === 'low' ? 2 : 4;
     for (let i = 0; i < pieceCount; i++) {
       const piece = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.05, 0.35), deckMat);
@@ -381,7 +405,6 @@ export class Player {
       this.skateboardMesh = null;
     }
 
-    // Clean up broken pieces
     for (const piece of this.brokenPieces) {
       this.app.scene.remove(piece);
     }
@@ -405,32 +428,33 @@ export class Player {
   }
 
   resetAnimation() {
-    this.leftLeg.rotation.x = 0;
-    this.rightLeg.rotation.x = 0;
-    this.leftLowerLeg.rotation.x = 0;
-    this.rightLowerLeg.rotation.x = 0;
-    this.leftArm.rotation.x = 0;
-    this.rightArm.rotation.x = 0;
-    this.leftForearm.rotation.x = 0;
-    this.rightForearm.rotation.x = 0;
-    this.torso.rotation.x = 0;
-    this.torso.rotation.z = 0;
-    this.head.rotation.x = 0;
+    if (!this.isGLBCharacter) {
+      this.leftLeg.rotation.x = 0;
+      this.rightLeg.rotation.x = 0;
+      this.leftLowerLeg.rotation.x = 0;
+      this.rightLowerLeg.rotation.x = 0;
+      this.leftArm.rotation.x = 0;
+      this.rightArm.rotation.x = 0;
+      this.leftForearm.rotation.x = 0;
+      this.rightForearm.rotation.x = 0;
+      this.torso.rotation.x = 0;
+      this.torso.rotation.z = 0;
+      this.head.rotation.x = 0;
+    } else if (this.glbMesh) {
+      this.glbMesh.rotation.set(0, 0, 0);
+    }
   }
 
   update(delta) {
     const input = this.app.input;
     const speed = this.app.game.currentSpeed * (this.app.game.speedBoost || 1);
 
-    // Cooldown to prevent double-tap issues
     this.laneCooldown = (this.laneCooldown || 0) - delta;
 
-    // Lane switching - only if cooldown is ready
     if (this.laneCooldown <= 0) {
       const leftInput = input.consume('left') || input.consume('swipeLeft');
       const rightInput = input.consume('right') || input.consume('swipeRight');
 
-      // If BOTH fired at once (bug), only process one
       if (leftInput && rightInput) {
         // Ambiguous - skip this frame
       } else if (leftInput && this.currentLane > 0) {
@@ -462,7 +486,6 @@ export class Player {
       }
     }
 
-    // Physics
     if (this.isJumping) {
       this.y += this.jumpVelocity * delta;
       this.jumpVelocity -= 25 * delta;
@@ -503,7 +526,6 @@ export class Player {
       if (this.skateboardTime <= 0) this.deactivateSkateboard();
     }
 
-    // Invincibility flash (optimized)
     if (this.invincible && !this.hasSkateboard) {
       this.invincibleTime -= delta;
       this.group.visible = Math.floor(this.invincibleTime * 10) % 2 === 0;
@@ -515,16 +537,18 @@ export class Player {
       this.group.visible = true;
     }
 
-    // Movement - reduced for clearer visibility
     const laneSpeed = 12;
     const currentX = this.group.position.x;
     this.group.position.x += (this.targetX - currentX) * laneSpeed * delta;
 
     this.animateCharacter(delta, speed);
 
-    // Lean
     const leanAmount = (this.targetX - currentX) * 0.3;
-    this.torso.rotation.z = -leanAmount * 0.1;
+    if (!this.isGLBCharacter) {
+      this.torso.rotation.z = -leanAmount * 0.1;
+    } else if (this.glbMesh) {
+      this.glbMesh.rotation.z = -leanAmount * 0.1;
+    }
 
     this.body.setTranslation({
       x: this.group.position.x,
@@ -593,65 +617,90 @@ export class Player {
   animateRunning() {
     const t = this.runTime;
     const stride = 1.4;
-    this.leftLeg.rotation.x = Math.sin(t * stride) * 0.7;
-    this.rightLeg.rotation.x = -Math.sin(t * stride) * 0.7;
-    this.leftLowerLeg.rotation.x = Math.max(0, -Math.sin(t * stride) - 0.3) * 0.7;
-    this.rightLowerLeg.rotation.x = Math.max(0, Math.sin(t * stride) - 0.3) * 0.7;
-    this.leftArm.rotation.x = -Math.sin(t * stride) * 0.9;
-    this.rightArm.rotation.x = Math.sin(t * stride) * 0.9;
-    this.leftForearm.rotation.x = -0.4 - Math.abs(Math.sin(t * stride)) * 0.3;
-    this.rightForearm.rotation.x = -0.4 - Math.abs(Math.sin(t * stride)) * 0.3;
+    
+    if (!this.isGLBCharacter) {
+      this.leftLeg.rotation.x = Math.sin(t * stride) * 0.7;
+      this.rightLeg.rotation.x = -Math.sin(t * stride) * 0.7;
+      this.leftLowerLeg.rotation.x = Math.max(0, -Math.sin(t * stride) - 0.3) * 0.7;
+      this.rightLowerLeg.rotation.x = Math.max(0, Math.sin(t * stride) - 0.3) * 0.7;
+      this.leftArm.rotation.x = -Math.sin(t * stride) * 0.9;
+      this.rightArm.rotation.x = Math.sin(t * stride) * 0.9;
+      this.leftForearm.rotation.x = -0.4 - Math.abs(Math.sin(t * stride)) * 0.3;
+      this.rightForearm.rotation.x = -0.4 - Math.abs(Math.sin(t * stride)) * 0.3;
+      this.torso.rotation.x = 0.2;
+      this.head.rotation.x = -0.1;
+    } else if (this.glbMesh) {
+      this.glbMesh.rotation.x = 0.1;
+    }
+    
     this.group.position.y = this.y + Math.abs(Math.sin(t * stride * 2)) * 0.06;
-    this.torso.rotation.x = 0.2;
-    this.head.rotation.x = -0.1;
   }
 
   animateJumping() {
-    this.leftLeg.rotation.x = -1.0;
-    this.rightLeg.rotation.x = -1.0;
-    this.leftLowerLeg.rotation.x = -1.4;
-    this.rightLowerLeg.rotation.x = -1.4;
-    this.leftArm.rotation.x = -2.5;
-    this.rightArm.rotation.x = -2.5;
-    this.leftForearm.rotation.x = -0.6;
-    this.rightForearm.rotation.x = -0.6;
-    this.torso.rotation.x = 0.1;
-    this.head.rotation.x = 0.2;
+    if (!this.isGLBCharacter) {
+      this.leftLeg.rotation.x = -1.0;
+      this.rightLeg.rotation.x = -1.0;
+      this.leftLowerLeg.rotation.x = -1.4;
+      this.rightLowerLeg.rotation.x = -1.4;
+      this.leftArm.rotation.x = -2.5;
+      this.rightArm.rotation.x = -2.5;
+      this.leftForearm.rotation.x = -0.6;
+      this.rightForearm.rotation.x = -0.6;
+      this.torso.rotation.x = 0.1;
+      this.head.rotation.x = 0.2;
+    } else if (this.glbMesh) {
+      this.glbMesh.rotation.x = 0;
+    }
   }
 
   animateSliding() {
-    this.leftLeg.rotation.x = 0.6;
-    this.rightLeg.rotation.x = 0.6;
-    this.leftArm.rotation.x = -0.7;
-    this.rightArm.rotation.x = -0.7;
-    this.leftForearm.rotation.x = 0;
-    this.rightForearm.rotation.x = 0;
-    this.torso.rotation.x = 0.4;
-    this.head.rotation.x = 0.3;
+    if (!this.isGLBCharacter) {
+      this.leftLeg.rotation.x = 0.6;
+      this.rightLeg.rotation.x = 0.6;
+      this.leftArm.rotation.x = -0.7;
+      this.rightArm.rotation.x = -0.7;
+      this.leftForearm.rotation.x = 0;
+      this.rightForearm.rotation.x = 0;
+      this.torso.rotation.x = 0.4;
+      this.head.rotation.x = 0.3;
+    } else if (this.glbMesh) {
+      this.glbMesh.rotation.x = 0.2;
+    }
   }
 
   animateSkating() {
     const t = this.runTime;
-    this.leftLeg.rotation.x = 0.4;
-    this.rightLeg.rotation.x = 0.4;
-    this.leftLowerLeg.rotation.x = 0.4;
-    this.rightLowerLeg.rotation.x = 0.4;
-    this.leftArm.rotation.x = -0.9;
-    this.rightArm.rotation.x = -0.9;
-    this.leftForearm.rotation.x = -0.3;
-    this.rightForearm.rotation.x = -0.3;
+    
+    if (!this.isGLBCharacter) {
+      this.leftLeg.rotation.x = 0.4;
+      this.rightLeg.rotation.x = 0.4;
+      this.leftLowerLeg.rotation.x = 0.4;
+      this.rightLowerLeg.rotation.x = 0.4;
+      this.leftArm.rotation.x = -0.9;
+      this.rightArm.rotation.x = -0.9;
+      this.leftForearm.rotation.x = -0.3;
+      this.rightForearm.rotation.x = -0.3;
+      this.torso.rotation.x = 0.1;
+      this.head.rotation.x = -0.1;
+    } else if (this.glbMesh) {
+      this.glbMesh.rotation.x = 0.1;
+      this.glbMesh.rotation.z = Math.sin(t * 2) * 0.1;
+    }
+    
     this.group.position.y = this.y + Math.sin(t * 4) * 0.1;
-    this.torso.rotation.x = 0.1;
-    this.head.rotation.x = -0.1;
   }
 
   animateHit() {
-    this.leftArm.rotation.x = -2.3;
-    this.rightArm.rotation.x = -2.3;
-    this.leftLeg.rotation.x = 0.4;
-    this.rightLeg.rotation.x = 0.4;
-    this.torso.rotation.x = -0.2;
-    this.head.rotation.x = -0.3;
+    if (!this.isGLBCharacter) {
+      this.leftArm.rotation.x = -2.3;
+      this.rightArm.rotation.x = -2.3;
+      this.leftLeg.rotation.x = 0.4;
+      this.rightLeg.rotation.x = 0.4;
+      this.torso.rotation.x = -0.2;
+      this.head.rotation.x = -0.3;
+    } else if (this.glbMesh) {
+      this.glbMesh.rotation.x = -0.2;
+    }
   }
 
   updateTrail(delta) {

@@ -69,6 +69,22 @@ export const CHARACTERS = [
       shoes: 0xffaa00,
       skin: 0xffe0b0
     }
+  },
+  {
+    id: 'michael',
+    name: 'Michael',
+    cost: 3000,
+    unlocked: false,
+    useGLB: true,
+    glbPath: './models/michael.glb',
+    stats: { speed: 1.2, jump: 1.2, luck: 1.5 },
+    colors: {
+      shirt: 0x2244aa,
+      pants: 0x333333,
+      hair: 0x4a3a2a,
+      shoes: 0x222222,
+      skin: 0xffb380
+    }
   }
 ];
 

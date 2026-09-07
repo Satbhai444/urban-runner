@@ -45,16 +45,19 @@ export class Player {
 
     this.createMesh();
     this.createPhysics();
+    this.loadGLBModel();
   }
 
-  async loadGLBModel() {
+  loadGLBModel() {
     const loader = new GLTFLoader();
-    try {
-      const gltf = await loader.loadAsync('./models/michael.glb');
+    loader.load('./models/michael.glb', (gltf) => {
       this.glbScene = gltf.scene;
-    } catch (err) {
+      if (this.currentCharacter && this.currentCharacter.useGLB) {
+        this.rebuildCharacter(this.currentCharacter);
+      }
+    }, undefined, (err) => {
       console.error('Failed to load GLB model:', err);
-    }
+    });
   }
 
   setCharacter(character) {

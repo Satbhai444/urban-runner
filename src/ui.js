@@ -148,6 +148,14 @@ export class UI {
           </div>
         </div>
         <div class="settings-group">
+          <div class="settings-title">DEVELOPERS</div>
+          <div style="font-size: 14px; line-height: 1.4; color: #ccc;">
+            <p style="margin: 5px 0;"><strong>Darshan Satbhai</strong></p>
+            <p style="margin: 5px 0;">Creator & Lead Developer of Urban Runner</p>
+            <a href="https://www.daarshannexaa.in/" target="_blank" style="color: #ffcc00; text-decoration: none; display: inline-block; margin-top: 5px;">Visit Portfolio</a>
+          </div>
+        </div>
+        <div class="settings-group">
           <div class="settings-title">CONTROLS</div>
           <div class="control-hint">
             <span>← →</span> Move Lanes
@@ -241,6 +249,27 @@ export class UI {
     `;
     container.appendChild(this.gameOverScreen);
 
+    // === REVIEW POPUP ===
+    this.reviewPopup = document.createElement('div');
+    this.reviewPopup.id = 'popup-review';
+    this.reviewPopup.className = 'overlay-screen';
+    this.reviewPopup.style.display = 'none';
+    this.reviewPopup.style.zIndex = '200';
+    this.reviewPopup.innerHTML = `
+      <div class="gameover-content" style="text-align: center;">
+        <div class="gameover-title" style="font-size: 24px; color: #ffcc00;">Enjoying the Game?</div>
+        <div style="margin: 20px 0; font-size: 16px; color: #fff;">
+          If you like this endless runner, please give us a ⭐ on GitHub!
+        </div>
+        <div class="gameover-buttons" style="flex-direction: column; gap: 15px;">
+          <a href="https://github.com/Satbhai444/urban-runner" target="_blank" class="go-btn primary" id="btn-star-github" style="text-decoration: none; width: 100%; box-sizing: border-box;">⭐ STAR ON GITHUB</a>
+          <a href="https://www.daarshannexaa.in/" target="_blank" class="go-btn" id="btn-portfolio" style="text-decoration: none; width: 100%; box-sizing: border-box;">👨‍💻 DEVELOPER PORTFOLIO</a>
+          <button class="go-btn" id="btn-review-close" style="background: transparent; color: #aaa; border: none; font-size: 14px;">Maybe Later</button>
+        </div>
+      </div>
+    `;
+    container.appendChild(this.reviewPopup);
+
     this.bindEvents();
     this.updateCharCarousel();
     this.updateShop();
@@ -295,6 +324,12 @@ export class UI {
     document.getElementById('go-home')?.addEventListener('click', () => this.goToMenu());
     document.getElementById('go-restart')?.addEventListener('click', () => this.app.restartGame());
 
+    // Review Popup
+    document.getElementById('btn-review-close')?.addEventListener('click', () => {
+      document.getElementById('popup-review').style.display = 'none';
+      document.getElementById('screen-gameover').style.display = 'flex'; // Bring back Game Over screen
+    });
+
     // Keyboard navigation
     window.addEventListener('keydown', (e) => this.handleKeyboard(e));
   }
@@ -320,6 +355,14 @@ export class UI {
         this.progress = loadProgress();
         document.getElementById('home-coins').textContent = this.progress.totalCoins.toLocaleString();
         document.getElementById('home-high').textContent = this.progress.highScore.toLocaleString();
+        
+        // Restore the actually selected character in case they previewed another
+        if (this.app.player) {
+          const selectedChar = getCharacter(this.progress.selectedCharacter);
+          if (this.app.player.currentCharacter?.id !== selectedChar.id) {
+            this.app.player.setCharacter(selectedChar);
+          }
+        }
         break;
 
       case 'characters':
@@ -685,5 +728,18 @@ export class UI {
     }
 
     this.showScreen('gameover');
+
+    // Show Review Popup once
+    if (!localStorage.getItem('nr_hasSeenReview_2') && this.progress.gamesPlayed >= 1) {
+      setTimeout(() => {
+        const popup = document.getElementById('popup-review');
+        const goScreen = document.getElementById('screen-gameover');
+        if (popup) {
+          if (goScreen) goScreen.style.display = 'none'; // Hide Game Over screen behind it
+          popup.style.display = 'flex';
+          localStorage.setItem('nr_hasSeenReview_2', 'true');
+        }
+      }, 500); // Small delay before popup
+    }
   }
 }

@@ -184,11 +184,7 @@
     @keyframes warnText { 0% { transform: translate(-50%, -50%) scale(2); opacity: 0; } 30% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } }
     @keyframes warnFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
 
-    /* === MOBILE TOUCH === */
-    .touch-controls { position: fixed; bottom: 80px; left: 0; right: 0; display: none; justify-content: space-around; padding: 0 20px; z-index: 105; pointer-events: none; }
-    @media (max-width: 768px) { .touch-controls { display: flex; } }
-    .touch-btn { width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); color: #fff; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; pointer-events: auto; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
-    .touch-btn:active { background: rgba(0,255,255,0.4); border-color: #00ffff; transform: scale(0.9); }
+
 
     /* === COIN POPUP === */
     .coin-popup { pointer-events: none; }
@@ -197,12 +193,7 @@
 <body>
   <div id="game-container"></div>
 
-  <!-- Mobile touch controls -->
-  <div class="touch-controls" id="touch-controls">
-    <button class="touch-btn" id="touch-left">←</button>
-    <button class="touch-btn" id="touch-jump">↑</button>
-    <button class="touch-btn" id="touch-right">→</button>
-  </div>
+
 
   <script type="module" src="/src/main.js"></script>
 </body>

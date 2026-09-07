@@ -50,3 +50,5 @@ ehthumbs_vista.db
 # Misc
 *.tsbuildinfo
 .cache/
+
+.vercel

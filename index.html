@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Urban Runner - A fast-paced 3D endless runner game built with Three.js. Dodge trains, collect coins, unlock characters, and compete for high scores!" />
+  <meta name="keywords" content="endless runner, 3D game, three.js, browser game, subway surfer clone, urban runner, webgl game, html5 game" />
+  <meta name="author" content="satbhai444" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0a0e1a">
+  <title>URBAN RUNNER 🏃‍♂️</title>
+
+  <!-- Open Graph / Social Media -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="URBAN RUNNER 🏃‍♂️" />
+  <meta property="og:description" content="A fast-paced 3D endless runner built with Three.js. Dodge obstacles, collect coins, unlock characters, and beat your high score!" />
+  <meta property="og:url" content="https://urban-runner.vercel.app" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="URBAN RUNNER 🏃‍♂️" />
+  <meta name="twitter:description" content="A fast-paced 3D endless runner built with Three.js. Dodge obstacles, collect coins, unlock characters, and beat your high score!" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' style='stop-color:%2300ffff'/><stop offset='100%25' style='stop-color:%23ff00ff'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='%230a0e1a'/><text x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-family='sans-serif' font-weight='900' font-size='28' fill='url(%23g)'>UR</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Russo+One&display=swap" rel="stylesheet">
+  <style>
+    /* === RESET === */
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: linear-gradient(180deg, #87ceeb 0%, #e0f4ff 100%); font-family: 'Orbitron', sans-serif; touch-action: none; user-select: none; -webkit-user-select: none; position: fixed; top: 0; left: 0; color: #fff; }
+    canvas { display: block; width: 100% !important; height: 100% !important; }
+
+    /* === SCREEN BASE === */
+    .menu-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: none; z-index: 150; flex-direction: column; background: linear-gradient(180deg, #1a1530 0%, #0a0e1a 100%); }
+    .menu-screen.active { display: flex; }
+    .overlay-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: none; z-index: 250; justify-content: center; align-items: center; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+    /* === HOME SCREEN === */
+    #screen-home { background: linear-gradient(180deg, #87ceeb 0%, #b8d4e8 40%, #d4e8f0 100%); }
+    .menu-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(ellipse at top, rgba(255,255,255,0.3), transparent 60%); pointer-events: none; }
+    .menu-content { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px 20px; max-width: 500px; margin: 0 auto; }
+
+    .menu-logo { margin-bottom: 40px; text-align: center; }
+    .game-title { font-family: 'Russo One', sans-serif; font-size: clamp(3rem, 12vw, 5rem); font-weight: 900; color: #1a4a7a; text-shadow: 2px 2px 0 #fff, 4px 4px 0 rgba(0,0,0,0.1); letter-spacing: 4px; line-height: 1; animation: titlePulse 3s ease-in-out infinite; }
+    .game-title-sub { font-family: 'Russo One', sans-serif; font-size: clamp(2rem, 8vw, 3rem); font-weight: 900; color: #ff6b35; text-shadow: 2px 2px 0 #fff, 4px 4px 0 rgba(0,0,0,0.1); letter-spacing: 8px; margin-top: 4px; }
+
+    @keyframes titlePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+
+    .menu-buttons { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 320px; }
+    .menu-btn { padding: 18px 24px; font-family: 'Russo One', sans-serif; font-size: 1.2rem; font-weight: 700; letter-spacing: 3px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: transform 0.15s, box-shadow 0.15s; clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 16px 50%); min-height: 60px; }
+
+    .play-btn { background: linear-gradient(135deg, #ff6b35, #ff8c55); color: #fff; box-shadow: 0 4px 20px rgba(255, 107, 53, 0.5); }
+    .play-btn:hover, .play-btn:active { transform: scale(1.05); box-shadow: 0 4px 30px rgba(255, 107, 53, 0.8); }
+    .char-btn { background: linear-gradient(135deg, #4CAF50, #66BB6A); color: #fff; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); }
+    .char-btn:hover, .char-btn:active { transform: scale(1.05); }
+    .shop-btn { background: linear-gradient(135deg, #FFA726, #FFB74D); color: #fff; box-shadow: 0 4px 15px rgba(255, 167, 38, 0.4); }
+    .shop-btn:hover, .shop-btn:active { transform: scale(1.05); }
+    .settings-btn { background: linear-gradient(135deg, #78909c, #607d8b); color: #fff; box-shadow: 0 4px 15px rgba(96, 125, 139, 0.4); }
+    .settings-btn:hover, .settings-btn:active { transform: scale(1.05); }
+
+    .btn-icon { font-size: 1.5rem; margin-left: 16px; }
+    .btn-text { flex: 1; text-align: left; }
+
+    .menu-stats { display: flex; gap: 20px; margin-top: 30px; padding: 16px 24px; background: rgba(255,255,255,0.9); border-radius: 20px; border: 2px solid #ff6b35; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .stat-item { display: flex; align-items: center; gap: 8px; }
+    .stat-icon { font-size: 1.3rem; }
+    .stat-value { font-size: 1.1rem; font-weight: 700; color: #b8860b; }
+
+    /* === HEADER === */
+    .screen-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; padding-top: max(16px, env(safe-area-inset-top)); background: rgba(255,255,255,0.9); border-bottom: 2px solid #ff6b35; }
+    .back-btn { background: #ff6b35; border: none; color: #fff; padding: 12px 20px; font-family: 'Russo One', sans-serif; cursor: pointer; border-radius: 10px; min-height: 44px; font-size: 0.9rem; }
+    .back-btn:active { background: #e55a25; }
+    .screen-title { font-family: 'Russo One', sans-serif; font-size: 1.3rem; font-weight: 700; letter-spacing: 3px; color: #1a4a7a; }
+    .coins-display { color: #b8860b; font-weight: 700; font-size: 1rem; background: rgba(255,215,0,0.1); padding: 8px 16px; border-radius: 20px; border: 2px solid #ffd700; }
+
+    /* === CHARACTER SCREEN === */
+    .char-preview { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+    .char-model { width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; font-size: 6rem; margin-bottom: 20px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 20px; }
+    .char-name { font-family: 'Russo One', sans-serif; font-size: 2.5rem; font-weight: 900; color: #1a4a7a; letter-spacing: 4px; margin-bottom: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .char-stats { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 280px; margin-bottom: 16px; }
+    .stat-bar { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: #333; }
+    .stat-bar > span { width: 80px; color: #666; }
+    .bar { flex: 1; height: 10px; background: #ddd; border-radius: 5px; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, #ff6b35, #ffab35); border-radius: 5px; transition: width 0.3s; }
+    .char-cost { font-size: 1.2rem; font-weight: 700; padding: 12px 24px; background: #fff3e0; border: 2px solid #ff6b35; border-radius: 12px; color: #ff6b35; }
+
+    .char-carousel { display: flex; gap: 12px; padding: 16px; overflow-x: auto; background: rgba(255,255,255,0.5); }
+    .char-carousel::-webkit-scrollbar { display: none; }
+    .char-thumb { min-width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; }
+    .char-icon { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 900; color: #fff; border: 3px solid transparent; border-radius: 12px; }
+    .char-thumb.selected .char-icon { border-color: #ff6b35; box-shadow: 0 0 15px rgba(255,107,53,0.5); }
+    .char-thumb.locked .char-icon { opacity: 0.5; }
+
+    .char-actions { padding: 16px; display: flex; gap: 12px; }
+    .action-btn { flex: 1; padding: 16px; font-family: 'Russo One', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: 2px; border: none; cursor: pointer; min-height: 56px; border-radius: 12px; }
+    .unlock-btn { background: linear-gradient(135deg, #ff6b35, #ff8c55); color: #fff; box-shadow: 0 4px 10px rgba(255,107,53,0.3); }
+    .unlock-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .select-btn { background: linear-gradient(135deg, #4CAF50, #66BB6A); color: #fff; box-shadow: 0 4px 10px rgba(76,175,80,0.3); }
+    .action-btn:active:not(:disabled) { transform: scale(0.95); }
+
+    /* === SHOP === */
+    .shop-tabs { display: flex; padding: 8px; gap: 8px; background: rgba(255,255,255,0.5); }
+    .tab-btn { flex: 1; padding: 12px; font-family: 'Russo One', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; background: #f0f0f0; color: #666; border: none; cursor: pointer; border-radius: 10px; }
+    .tab-btn.active { background: linear-gradient(135deg, #ff6b35, #ff8c55); color: #fff; box-shadow: 0 4px 10px rgba(255,107,53,0.3); }
+    .shop-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .shop-item { display: flex; align-items: center; gap: 16px; padding: 16px; background: #fff; border: 2px solid #eee; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .shop-item.selected { border-color: #ff6b35; background: #fff8f3; }
+    .shop-item.locked { opacity: 0.85; }
+    .shop-icon { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 2rem; border-radius: 12px; flex-shrink: 0; }
+    .shop-info { flex: 1; }
+    .shop-name { font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; color: #333; }
+    .shop-desc { font-size: 0.8rem; color: #888; }
+    .shop-btn { padding: 10px 20px; font-family: 'Russo One', sans-serif; font-size: 0.85rem; font-weight: 700; background: #ddd; color: #333; border: none; border-radius: 10px; cursor: pointer; min-height: 44px; white-space: nowrap; }
+    .shop-btn.buy { background: linear-gradient(135deg, #ff6b35, #ff8c55); color: #fff; }
+    .shop-btn.selected { background: linear-gradient(135deg, #4CAF50, #66BB6A); color: #fff; }
+
+    /* === SETTINGS === */
+    .settings-content { flex: 1; overflow-y: auto; padding: 20px; }
+    .settings-group { margin-bottom: 24px; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .settings-title { padding: 12px 16px; background: #f5f5f5; font-family: 'Russo One', sans-serif; font-size: 0.9rem; letter-spacing: 2px; color: #666; }
+    .setting-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #eee; color: #333; }
+    .setting-item:last-child { border-bottom: none; }
+    .setting-item select { background: #f0f0f0; color: #333; border: 1px solid #ddd; padding: 8px 12px; border-radius: 6px; font-family: 'Orbitron', sans-serif; }
+    .toggle { position: relative; display: inline-block; width: 50px; height: 28px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 14px; transition: 0.3s; }
+    .toggle-slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .toggle input:checked + .toggle-slider { background: #ff6b35; }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(22px); }
+    .control-hint { padding: 12px 16px; color: #555; font-size: 0.85rem; border-bottom: 1px solid #eee; }
+    .control-hint span { background: #f0f0f0; padding: 4px 8px; border-radius: 4px; margin-right: 8px; font-weight: 700; font-size: 0.8rem; color: #333; }
+    .reset-btn { width: calc(100% - 32px); margin: 16px; padding: 16px; font-family: 'Russo One', sans-serif; background: #ffebee; color: #d32f2f; border: 2px solid #ffcdd2; border-radius: 12px; cursor: pointer; font-weight: 700; }
+
+    /* === GAME HUD === */
+    .game-hud { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 100; pointer-events: none; display: none; flex-direction: column; justify-content: space-between; padding: 16px; padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom)); background: transparent; }
+    .hud-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .hud-left { display: flex; align-items: center; gap: 12px; }
+    .hud-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    .pause-btn { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: #fff; width: 44px; height: 44px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; pointer-events: auto; }
+    .pause-btn:active { background: rgba(0,0,0,0.7); }
+    .score-box { background: rgba(0,0,0,0.65); padding: 10px 18px; border-radius: 16px; border: 2px solid #ff6b35; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+    .score-value { font-family: 'Russo One', sans-serif; font-size: 1.6rem; font-weight: 700; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+    .score-label { font-size: 0.7rem; color: #ffd700; letter-spacing: 2px; font-weight: 700; }
+    .coins-box { background: rgba(0,0,0,0.65); padding: 10px 18px; border-radius: 16px; color: #ffd700; font-family: 'Russo One', sans-serif; font-size: 1.3rem; font-weight: 700; display: flex; align-items: center; gap: 6px; border: 2px solid #ffd700; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+    .multiplier { color: #ff6b35; font-weight: 700; font-size: 1rem; text-shadow: 0 0 5px rgba(0,0,0,0.5); }
+
+    .hud-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+    .hearts { display: flex; gap: 4px; font-size: 1.8rem; background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: 12px; }
+    .skateboard-bar { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 16px; min-width: 160px; border: 2px solid #ff6b35; }
+    .skate-icon { font-size: 1.5rem; }
+    .skate-time { font-family: 'Russo One', sans-serif; font-size: 1rem; color: #ff6b35; min-width: 50px; text-align: center; }
+    .skate-fill { flex: 1; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; }
+    #skate-progress { height: 100%; background: linear-gradient(90deg, #ff6b35, #ffab35); border-radius: 5px; width: 0%; transition: width 0.1s; }
+
+    .combo-popup { position: fixed; top: 40%; left: 50%; transform: translate(-50%, -50%); font-family: 'Russo One', sans-serif; font-size: 2.5rem; font-weight: 900; color: #ff00ff; text-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; opacity: 0; pointer-events: none; z-index: 110; }
+    .combo-popup.show { animation: comboPop 0.5s ease-out; }
+    @keyframes comboPop { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } 50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+    /* === PAUSE SCREEN === */
+    .pause-content { display: flex; flex-direction: column; gap: 16px; padding: 40px; background: rgba(255,255,255,0.95); border-radius: 20px; min-width: 280px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .pause-title { font-family: 'Russo One', sans-serif; font-size: 2rem; font-weight: 900; text-align: center; letter-spacing: 4px; color: #1a4a7a; margin-bottom: 16px; }
+    .pause-btn-item { padding: 16px 24px; font-family: 'Russo One', sans-serif; font-size: 1.1rem; font-weight: 700; background: #ff6b35; color: #fff; border: none; border-radius: 12px; cursor: pointer; letter-spacing: 2px; box-shadow: 0 4px 10px rgba(255,107,53,0.3); }
+    .pause-btn-item:active { transform: scale(0.95); background: #e55a25; }
+
+    /* === GAME OVER === */
+    .gameover-content { display: flex; flex-direction: column; align-items: center; padding: 32px 24px; background: rgba(255,255,255,0.98); border-radius: 24px; min-width: 320px; max-width: 90vw; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .gameover-title { font-family: 'Russo One', sans-serif; font-size: 2.5rem; font-weight: 900; letter-spacing: 4px; color: #ff4444; margin-bottom: 8px; }
+    .gameover-score { font-family: 'Russo One', sans-serif; font-size: 4rem; font-weight: 900; color: #1a4a7a; line-height: 1; }
+    .gameover-score.new-high { color: #ffd700; }
+    .gameover-coins { color: #b8860b; font-size: 1.3rem; font-weight: 700; margin: 8px 0 16px; }
+    .gameover-stats { display: flex; gap: 16px; margin-bottom: 24px; width: 100%; }
+    .go-stat { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 12px; background: #f0f0f0; border-radius: 12px; }
+    .go-label { font-size: 0.7rem; color: #666; letter-spacing: 2px; }
+    .go-value { font-size: 1.2rem; font-weight: 700; color: #333; }
+    .gameover-buttons { display: flex; gap: 12px; width: 100%; }
+    .go-btn { flex: 1; padding: 16px; font-family: 'Russo One', sans-serif; font-size: 1rem; font-weight: 700; background: #666; color: #fff; border: none; border-radius: 12px; cursor: pointer; letter-spacing: 1px; }
+    .go-btn.primary { background: linear-gradient(135deg, #ff6b35, #ff8c55); box-shadow: 0 4px 10px rgba(255,107,53,0.3); }
+    .go-btn:active { transform: scale(0.95); }
+
+    /* === WARNING === */
+    .warning-flash { position: fixed; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 200; box-shadow: inset 0 0 100px 50px rgba(255, 0, 0, 0.6); animation: warnFlash 0.3s ease-out; }
+    @keyframes warnFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+    .warning-text { position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%); font-family: 'Russo One', sans-serif; font-size: 3rem; font-weight: 900; color: #ff0044; text-shadow: 0 0 20px #ff0044; pointer-events: none; z-index: 210; animation: warnText 0.8s ease-out; }
+    @keyframes warnText { 0% { transform: translate(-50%, -50%) scale(2); opacity: 0; } 30% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } }
+    @keyframes warnFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+
+    /* === MOBILE TOUCH === */
+    .touch-controls { position: fixed; bottom: 80px; left: 0; right: 0; display: none; justify-content: space-around; padding: 0 20px; z-index: 105; pointer-events: none; }
+    @media (max-width: 768px) { .touch-controls { display: flex; } }
+    .touch-btn { width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); color: #fff; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; pointer-events: auto; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+    .touch-btn:active { background: rgba(0,255,255,0.4); border-color: #00ffff; transform: scale(0.9); }
+
+    /* === COIN POPUP === */
+    .coin-popup { pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+
+  <!-- Mobile touch controls -->
+  <div class="touch-controls" id="touch-controls">
+    <button class="touch-btn" id="touch-left">←</button>
+    <button class="touch-btn" id="touch-jump">↑</button>
+    <button class="touch-btn" id="touch-right">→</button>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "name": "urban-runner",
+  "version": "1.0.0",
+  "description": "A fast-paced 3D endless runner game built with Three.js and Rapier Physics. Dodge trains, collect coins, unlock characters, and compete for high scores!",
+  "type": "module",
+  "author": "satbhai444",
+  "license": "MIT",
+  "homepage": "https://github.com/satbhai444/urban-runner",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/satbhai444/urban-runner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/satbhai444/urban-runner/issues"
+  },
+  "keywords": [
+    "game",
+    "3d",
+    "endless-runner",
+    "threejs",
+    "webgl",
+    "browser-game",
+    "html5",
+    "mobile-game"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.160.0",
+    "@dimforge/rapier3d-compat": "^0.12.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
